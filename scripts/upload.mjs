@@ -15,9 +15,10 @@
  * - The player page (jonnymexican.github.io/test/djmixes/) lists every
  *   release automatically — nothing else to update.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Readable } from 'node:stream';
 
 const REPO = 'jonnymexican/dj-mixes';
 const API = `https://api.github.com/repos/${REPO}`;
@@ -117,7 +118,10 @@ for (const file of files) {
         'content-length': String(size),
         'user-agent': 'dj-mixes-upload',
       },
-      body: readFileSync(path),
+      // Stream straight from disk — buffering a 1 GB+ mix in RAM explodes
+      // undici's socket write buffer (ENOBUFS).
+      body: Readable.toWeb(createReadStream(path)),
+      duplex: 'half',
     }
   );
   if (res.status === 201) {
