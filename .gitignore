@@ -1,0 +1,15 @@
+# local token (never commit)
+secrets.token
+
+# dependencies
+node_modules
+
+# local audio files (staged before upload, never committed)
+*.mp3
+*.wav
+*.flac
+*.m4a
+*.ogg
+*.aiff
+*.aif
+.env
