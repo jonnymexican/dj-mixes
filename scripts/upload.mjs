@@ -11,6 +11,8 @@
  *   files to that release.
  * - The tag becomes the player's title: dashes/underscores become spaces.
  *   "attic-sessions-oct-2026" → "attic sessions oct 2026". Pick readable tags.
+ * - A tracklist.txt in the folder becomes the release body — the player page
+ *   renders it as a collapsible tracklist. Edit + re-run to update it.
  * - GitHub caps assets at 2 GB each; this script refuses bigger ones.
  * - The player page (jonnymexican.github.io/test/djmixes/) lists every
  *   release automatically — nothing else to update.
@@ -66,6 +68,11 @@ if (files.length === 0) {
 const title = tag.replace(/[-_]+/g, ' ');
 console.log(`${files.length} file(s) → release "${title}" (${tag})`);
 
+// tracklist.txt (if present) becomes the release body — the player page
+// renders it as a collapsible 📋 Tracklist under the release title.
+const tlPath = join(folder, 'tracklist.txt');
+const tracklist = existsSync(tlPath) ? readFileSync(tlPath, 'utf8').trim() : '';
+
 // Find or create the release for this tag.
 let release;
 const findRes = await fetch(`${API}/releases/tags/${encodeURIComponent(tag)}`, { headers: auth });
@@ -76,7 +83,7 @@ if (findRes.status === 200) {
   const createRes = await fetch(`${API}/releases`, {
     method: 'POST',
     headers: { ...auth, 'content-type': 'application/json' },
-    body: JSON.stringify({ tag_name: tag, name: title, body: `DJ mixes — ${title}` }),
+    body: JSON.stringify({ tag_name: tag, name: title, body: tracklist || `DJ mixes — ${title}` }),
   });
   if (!createRes.ok) {
     console.error(`Could not create release: ${createRes.status} ${await createRes.text()}`);
@@ -87,6 +94,17 @@ if (findRes.status === 200) {
 } else {
   console.error(`Release lookup failed: ${findRes.status} ${await findRes.text()}`);
   process.exit(1);
+}
+
+// Editing tracklist.txt and re-running updates the release body in place.
+if (tracklist && tracklist !== (release.body || '').trim()) {
+  const patchRes = await fetch(`${API}/releases/${release.id}`, {
+    method: 'PATCH',
+    headers: { ...auth, 'content-type': 'application/json' },
+    body: JSON.stringify({ body: tracklist }),
+  });
+  if (patchRes.ok) console.log('Tracklist saved to the release (shows on the player page).');
+  else console.log(`Could not save tracklist (${patchRes.status}) — assets still upload.`);
 }
 
 const existing = new Set();
@@ -104,7 +122,7 @@ for (const file of files) {
     continue;
   }
   if (existing.has(file)) {
-    console.log(`SKIP ${file} — already attached (delete it on github.com first to replace)`);
+    console.log(`SKIP ${file} — already attached (scripts/replace.mjs swaps it)`);
     continue;
   }
   process.stdout.write(`↑ ${file} (${(size / 1e6).toFixed(1)} MB)… `);

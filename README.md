@@ -21,6 +21,17 @@ That's it. The tag becomes the player's title (dashes/underscores → spaces:
 folder becomes an asset, and re-running with the same tag **adds** more files to that
 release instead of duplicating.
 
+Drop a `tracklist.txt` in the folder and it becomes the release's body — the player
+page shows it as a collapsible 📋 Tracklist. Edit the file and re-run the same
+command to update it.
+
+Botched an upload? Swap a file in one step (deletes the matching asset, re-uploads
+the local one):
+
+```bash
+node scripts/replace.mjs attic-sessions-2026 ./sets/side-b.mp3
+```
+
 Need a token by hand instead? Paste any repo-scoped token into `secrets.token`
 (next to this README), or export `GH_TOKEN` before running the upload.
 
